@@ -1,0 +1,10 @@
+name: CosineAnnealingWithWarmup
+
+config:
+  _target_: cosine_annealing_warmup.CosineAnnealingWarmupRestarts
+  first_cycle_steps: 1000
+  cycle_mult: 1.0
+  max_lr: ${training.learning_rate}
+  min_lr: 0.0
+  warmup_steps: 500
+  gamma: 1.0

@@ -1,0 +1,36 @@
+query_tokenizer:
+  init:
+    language_model: ${language_model.name}
+    max_len: 32
+  call:
+    add_prefix_token: true
+    add_mask_tokens: true
+    kwargs: 
+      add_special_tokens: true
+      padding: max_length
+      truncation: true
+      return_attention_mask: true
+      return_token_type_ids: false
+      return_tensors: pt
+
+doc_tokenizer:
+  init:
+    language_model: ${language_model.name}
+    max_len: 256
+  call:
+    add_prefix_token: true
+    kwargs:
+      add_special_tokens: true
+      padding: longest
+      truncation: true
+      return_attention_mask: true
+      return_token_type_ids: false
+      return_tensors: pt
+  call_2:
+    add_prefix_token: true
+    kwargs:
+      add_special_tokens: true
+      padding: false
+      truncation: true
+      return_attention_mask: false
+      return_token_type_ids: false

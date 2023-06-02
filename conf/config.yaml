@@ -1,0 +1,31 @@
+defaults:
+  - model: dual_encoder_mean
+  - language_model: MiniLM-L6-H384-uncased
+  - tokenizer: default
+  - dataloader: default
+  - trainer: default
+  - training: default
+  - logging: default
+  - callbacks: default
+  - _self_
+  - override hydra/hydra_logging: disabled  
+  - override hydra/job_logging: disabled 
+
+
+general:
+  seed: 42
+  out_dir: outputs
+  dataset_name: msmarco-passage
+  dataset_dir: ${general.out_dir}/${general.dataset_name}
+  model_dir: ${general.dataset_dir}/${model.name}
+  data_dir: ${general.model_dir}/data
+  logs_dir: ${general.model_dir}/logs
+  runs_dir: ${general.model_dir}/runs
+  hyperparams_dir: ${general.model_dir}/hyperparams
+
+compile_mode: default  # Options are default, reduce-overhead, and max-autotune
+
+hydra:
+  output_subdir: ${general.model_dir}/hydra  
+  run:  
+    dir: .

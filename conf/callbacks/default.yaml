@@ -1,0 +1,24 @@
+on_epoch_end:
+  use: true
+  class_name: pytorch_lightning.callbacks.ModelCheckpoint
+  params:
+    dirpath: ${general.model_dir}/checkpoints/epochs
+    filename: "{epoch}"
+    every_n_epochs: 1
+    save_on_train_epoch_end: True
+    save_top_k: -1
+
+every_n_steps:
+  use: true
+  class_name: pytorch_lightning.callbacks.ModelCheckpoint
+  params:
+    dirpath: ${general.model_dir}/checkpoints/steps
+    filename: "{step}"
+    every_n_train_steps: 1000
+    save_top_k: -1
+
+lr_monitor:
+  use: true
+  class_name: pytorch_lightning.callbacks.LearningRateMonitor
+  params:
+    logging_interval: step

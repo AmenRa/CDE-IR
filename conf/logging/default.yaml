@@ -1,0 +1,9 @@
+# PyTorch Lightning loggers
+
+do_logs: true
+pl_loggers:
+  - class_name: pytorch_lightning.loggers.TensorBoardLogger
+    params:
+      save_dir: ${general.out_dir}/lightning_logs
+      name: ${model.name}
+      version: ${trainer.max_epochs}

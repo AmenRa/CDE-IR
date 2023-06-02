@@ -1,0 +1,22 @@
+devices: 1
+accelerator: cuda
+precision: 16-mixed
+max_epochs: 1
+deterministic: true
+log_every_n_steps: 25
+# Validation
+check_val_every_n_epoch: 100000
+# Checkpointing
+# checkpoint_callback: null
+enable_checkpointing: true
+default_root_dir: ${general.model_dir}
+# Utilities
+num_sanity_val_steps: 0
+limit_train_batches: 100000
+# auto_lr_find: true
+# auto_scale_batch_size: true
+# fast_dev_run: false  # Check everything works correctly
+
+
+# Uncomment to enable PyTorch Lightning feature
+gradient_clip_val: 1.0  # https://t.ly/EElO
