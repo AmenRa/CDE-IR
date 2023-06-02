@@ -1,10 +1,11 @@
 defaults:
-  - model: dual_encoder_mean
-  - language_model: MiniLM-L6-H384-uncased
+  - model: bi_encoder_mean
+  - language_model: bert
   - tokenizer: default
   - dataloader: default
   - trainer: default
   - training: default
+  - scheduler: default
   - logging: default
   - callbacks: default
   - _self_
