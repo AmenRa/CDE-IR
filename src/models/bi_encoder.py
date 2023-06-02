@@ -22,7 +22,7 @@ class BiEncoder(LightningModule):
     def __init__(
         self,
         language_model: str = "bert-base-uncased",
-        positional_embedding_type: str = "absolute",
+        position_embedding_type: str = "absolute",
         normalize_embeddings: bool = True,
         learning_rate: float = 3e-6,
         logit_scale: float = 20.0,
@@ -32,7 +32,7 @@ class BiEncoder(LightningModule):
 
         # Architecture ---------------------------------------------------------
         cfg = AutoConfig.from_pretrained(language_model)
-        cfg.positional_embedding_type = positional_embedding_type
+        cfg.position_embedding_type = position_embedding_type
         self.language_model = AutoModel.from_pretrained(language_model, config=cfg)
         self.pooling_layer = MaskedMeanPooling()
         self.normalize_embeddings = normalize_embeddings

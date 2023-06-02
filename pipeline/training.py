@@ -68,14 +68,12 @@ def main(cfg: DictConfig) -> None:
     # Model --------------------------------------------------------------------
     logger.info("Model")
     model = instantiate(cfg.model.config)
-    model.training_step = model.training_step_in_batch_negatives
 
     # Scheduler ----------------------------------------------------------------
     logger.info("Scheduler")
-    scheduler_config = cfg.scheduler.config
-    scheduler_config.first_cycle_steps = n_samples
+    scheduler_config = OmegaConf.to_container(cfg.scheduler.config, resolve=True)
+    scheduler_config["first_cycle_steps"] = cfg.trainer.limit_train_batches
     model.scheduler_config = scheduler_config
-    model.configure_optimizers()
 
     # Training -----------------------------------------------------------------
     logger.info("Training")

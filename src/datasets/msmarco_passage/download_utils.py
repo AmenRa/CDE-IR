@@ -105,8 +105,6 @@ def download_val():
         val_q_ids = [str(q.query_id) for q in dataset.queries_iter()]
         val_q_ids = [q_id for q_id in val_q_ids if q_id not in dev_q_ids]
 
-        print(len(val_q_ids))
-
         # qrels = defaultdict(dict)
         # for q in dataset.qrels_iter():
         #     qrels[str(q.query_id)][str(q.doc_id)] = q.relevance

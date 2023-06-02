@@ -3,16 +3,16 @@ accelerator: cuda
 precision: 16-mixed
 max_epochs: 1
 deterministic: true
-log_every_n_steps: 25
+log_every_n_steps: 10
 # Validation
-check_val_every_n_epoch: 100000
+check_val_every_n_epoch: 1000000
 # Checkpointing
 # checkpoint_callback: null
 enable_checkpointing: true
 default_root_dir: ${general.model_dir}
 # Utilities
 num_sanity_val_steps: 0
-limit_train_batches: 30000
+limit_train_batches: 10000
 # auto_lr_find: true
 # auto_scale_batch_size: true
 # fast_dev_run: false  # Check everything works correctly
