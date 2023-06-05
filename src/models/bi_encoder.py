@@ -4,7 +4,7 @@ from pytorch_lightning import LightningModule
 from torch import Tensor, einsum, nn
 from torch.nn.functional import normalize
 from torchmetrics import Accuracy
-from transformers import AutoConfig, AutoModel
+from transformers import AutoModel
 
 
 class MaskedMeanPooling(nn.Module):
@@ -22,18 +22,16 @@ class BiEncoder(LightningModule):
     def __init__(
         self,
         language_model: str = "bert-base-uncased",
-        position_embedding_type: str = "absolute",
         normalize_embeddings: bool = True,
         learning_rate: float = 3e-6,
         logit_scale: float = 20.0,
+        criterion: nn.Module = nn.CrossEntropyLoss(),
         scheduler_config: dict = None,
     ):
         super().__init__()
 
         # Architecture ---------------------------------------------------------
-        cfg = AutoConfig.from_pretrained(language_model)
-        cfg.position_embedding_type = position_embedding_type
-        self.language_model = AutoModel.from_pretrained(language_model, config=cfg)
+        self.language_model = AutoModel.from_pretrained(language_model)
         self.pooling_layer = MaskedMeanPooling()
         self.normalize_embeddings = normalize_embeddings
 
@@ -41,7 +39,7 @@ class BiEncoder(LightningModule):
         self.logit_scale = logit_scale if normalize_embeddings else 1.0
 
         # Loss function --------------------------------------------------------
-        self.criterion = nn.CrossEntropyLoss()
+        self.criterion = criterion
 
         # Optimizer ------------------------------------------------------------
         self.optimizer = torch.optim.AdamW
