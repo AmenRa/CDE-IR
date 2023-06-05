@@ -1,4 +1,4 @@
-name: bi_encoder_mean
+name: bi_enc
 
 config:
   _target_: src.models.BiEncoder

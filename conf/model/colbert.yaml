@@ -1,0 +1,12 @@
+name: colbert
+
+config:
+  _target_: src.models.BiEncoder
+  language_model: ${language_model.name}
+  embedding_dim: 128
+  learning_rate: ${training.learning_rate}
+
+params:
+  language_model: ${language_model.name}
+  embedding_dim: 128
+  learning_rate: ${training.learning_rate}

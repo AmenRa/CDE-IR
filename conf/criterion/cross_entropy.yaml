@@ -2,9 +2,9 @@ name: CrossEntropy
 
 config:
   _target_: torch.nn.CrossEntropyLoss
-  weight: Tensor | None = None,
-  size_average: Any | None = None,
-  ignore_index: int = -100,
-  reduce: Any | None = None,
-  reduction: str = 'mean',
-  label_smoothing: float = 0
+  weight: null
+  size_average: null
+  ignore_index: -100
+  reduce: null
+  reduction: mean
+  label_smoothing: 0

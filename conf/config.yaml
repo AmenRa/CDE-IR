@@ -1,5 +1,5 @@
 defaults:
-  - model: bi_encoder_mean
+  - model: bi_enc
   - language_model: bert
   - tokenizer: default
   - criterion: cross_entropy
