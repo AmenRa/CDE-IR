@@ -67,7 +67,7 @@ def main(cfg: DictConfig) -> None:
 
     # Model --------------------------------------------------------------------
     logger.info("Model")
-    model = instantiate(cfg.model.config)
+    model = instantiate(cfg.model.config, criterion=instantiate(cfg.criterion.config))
 
     # Scheduler ----------------------------------------------------------------
     logger.info("Scheduler")

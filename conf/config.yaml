@@ -2,6 +2,7 @@ defaults:
   - model: bi_encoder_mean
   - language_model: bert
   - tokenizer: default
+  - criterion: cross_entropy
   - dataloader: default
   - trainer: default
   - training: default

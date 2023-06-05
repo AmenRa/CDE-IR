@@ -1,0 +1,7 @@
+name: Poly1
+
+config:
+  _target_: src.criterions.Poly1
+  eps: 2.0
+  weight: null
+  reduction: mean

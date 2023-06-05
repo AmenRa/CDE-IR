@@ -9,13 +9,14 @@ from omegaconf import DictConfig
 from oneliner_utils import join_path, write_json
 from pytorch_lightning import seed_everything
 from ranx import Qrels, Run, evaluate
+from torch.utils.data import DataLoader
+from tqdm import tqdm
+
 from src.collators import EvalCollator
 from src.datasets.msmarco_passage import EvalDataset
 from src.models import BiEncoder
 from src.tokenizers import DocTokenizer, QueryTokenizer
 from src.utils import setup_logger
-from torch.utils.data import DataLoader
-from tqdm import tqdm
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -46,7 +47,7 @@ def main(cfg: DictConfig) -> None:
 
     # Compute runs =============================================================
     for split in [
-        "dev",
+        # "dev",
         "trec_dl_2019",
         "trec_dl_2020",
     ]:
@@ -74,15 +75,13 @@ def main(cfg: DictConfig) -> None:
             join_path(cfg.general.model_dir, "model.ckpt"),
             **cfg.model.params,
         ).cuda()
-
-        # model = instantiate(cfg.model.config).cuda()
         model.eval()
 
         run = defaultdict(dict)
 
         logger.info(f"Computing {split} run")
         with torch.cuda.amp.autocast(), torch.no_grad():
-            for batch in tqdm(dataloader, dynamic_ncols=True, disable=True):
+            for batch in tqdm(dataloader, dynamic_ncols=True):
                 (
                     batch_query_id,
                     batch_rel_doc_ids,
