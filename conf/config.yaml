@@ -1,6 +1,6 @@
 defaults:
   - model: bi_enc
-  - language_model: bert
+  - encoder: bert
   - tokenizer: default
   - criterion: cross_entropy
   - dataloader: default
@@ -20,6 +20,7 @@ general:
   dataset_name: msmarco-passage
   dataset_dir: ${general.out_dir}/${general.dataset_name}
   model_dir: ${general.dataset_dir}/${model.name}
+  checkpoints_dir: ${general.model_dir}/checkpoints
   data_dir: ${general.model_dir}/data
   logs_dir: ${general.model_dir}/logs
   runs_dir: ${general.model_dir}/runs

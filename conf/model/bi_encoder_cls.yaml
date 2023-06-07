@@ -1,14 +1,17 @@
 name: bi_enc
 
-config:
+init:
   _target_: src.models.BiEncoder
-  language_model: ${language_model.name}
+  encoder: ${encoder.name}
+  pooling_strategy: cls
   normalize_embeddings: false
   learning_rate: ${training.learning_rate}
   logit_scale: 20.0
 
-params:
-  language_model: ${language_model.name}
+checkpoint:
+  _target_: src.models.BiEncoder.load_from_checkpoint
+  encoder: ${encoder.name}
+  pooling_strategy: cls
   normalize_embeddings: false
   learning_rate: ${training.learning_rate}
   logit_scale: 20.0

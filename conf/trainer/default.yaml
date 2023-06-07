@@ -13,6 +13,7 @@ default_root_dir: ${general.model_dir}
 # Utilities
 num_sanity_val_steps: 0
 limit_train_batches: 10000
+accumulate_grad_batches: 1
 # auto_lr_find: true
 # auto_scale_batch_size: true
 # fast_dev_run: false  # Check everything works correctly

@@ -1,0 +1,5 @@
+init:
+  _target_: src.tokenizers.CrossTokenizer
+  language_model: ${language_model.name}
+  query_max_len: 16
+  doc_max_len: 128

@@ -1,0 +1,17 @@
+name: bi_enc
+
+init:
+  _target_: src.models.BiEncoder
+  encoder: ${encoder.name}
+  pooling_strategy: mean
+  normalize_embeddings: false
+  learning_rate: ${training.learning_rate}
+  logit_scale: 20.0
+
+checkpoint:
+  _target_: src.models.BiEncoder.load_from_checkpoint
+  encoder: ${encoder.name}
+  pooling_strategy: mean
+  normalize_embeddings: false
+  learning_rate: ${training.learning_rate}
+  logit_scale: 20.0

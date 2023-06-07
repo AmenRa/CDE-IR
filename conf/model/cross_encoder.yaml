@@ -1,13 +1,11 @@
-name: colbert
+name: cross_encoder
 
 init:
-  _target_: src.models.ColBERT
+  _target_: src.models.CrossEncoder
   encoder: ${encoder.name}
-  embedding_dim: 128
   learning_rate: ${training.learning_rate}
 
 checkpoint:
-  _target_: src.models.ColBERT.load_from_checkpoint
+  _target_: src.models.CrossEncoder.load_from_checkpoint
   encoder: ${encoder.name}
-  embedding_dim: 128
   learning_rate: ${training.learning_rate}
