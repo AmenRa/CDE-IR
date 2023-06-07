@@ -7,21 +7,33 @@ from torchmetrics import Accuracy
 from transformers import AutoModel
 
 
-class MaskedMeanPooling(nn.Module):
+class MaskedMeanPooler(nn.Module):
     def __init__(self, eps: float = 1e-08):
         super().__init__()
         self.eps = eps
 
-    def forward(self, embeddings: Tensor, mask: Tensor) -> Tensor:
-        numerators = einsum("xyz,xy->xyz", embeddings, mask).sum(dim=1)
+    def forward(self, input: Tensor, mask: Tensor) -> Tensor:
+        embeddings = input.last_hidden_state
+        numerators = einsum("xyz,xy->xz", embeddings, mask)
         denominators = mask.sum(dim=1, keepdim=True)
         return numerators / torch.clamp(denominators, min=self.eps)
+
+
+class CLS_Pooler(nn.Module):
+    def forward(self, input: Tensor) -> Tensor:
+        return input.last_hidden_state[:, 0]
+
+
+class Pooler(nn.Module):
+    def forward(self, input: Tensor) -> Tensor:
+        return input.pooler_output
 
 
 class BiEncoder(LightningModule):
     def __init__(
         self,
-        language_model: str = "bert-base-uncased",
+        encoder: str = "bert-base-uncased",
+        pooling_strategy: str = "mean",
         normalize_embeddings: bool = True,
         learning_rate: float = 3e-6,
         logit_scale: float = 20.0,
@@ -31,8 +43,17 @@ class BiEncoder(LightningModule):
         super().__init__()
 
         # Architecture ---------------------------------------------------------
-        self.language_model = AutoModel.from_pretrained(language_model)
-        self.pooling_layer = MaskedMeanPooling()
+        self.encoder = AutoModel.from_pretrained(encoder)
+
+        if pooling_strategy == "mean":
+            self.pooling_layer = MaskedMeanPooler()
+        elif pooling_strategy == "cls":
+            self.pooling_layer = CLS_Pooler()
+        elif pooling_strategy == "pooler":
+            self.pooling_layer = Pooler()
+        else:
+            raise NotImplementedError("Invalid pooling strategy")
+
         self.normalize_embeddings = normalize_embeddings
 
         # Training -------------------------------------------------------------
@@ -49,9 +70,16 @@ class BiEncoder(LightningModule):
         # Metric ---------------------------------------------------------------
         self.accuracy = Accuracy(task="binary")
 
+        # Other ----------------------------------------------------------------
+        self.pooling_strategy = pooling_strategy
+
     def embed_queries(self, input_ids: Tensor, attention_mask: Tensor) -> Tensor:
-        embeddings = self.language_model(input_ids, attention_mask).last_hidden_state
-        embeddings = self.pooling_layer(embeddings, attention_mask)
+        output = self.encoder(input_ids, attention_mask)
+
+        if self.pooling_strategy == "mean":
+            embeddings = self.pooling_layer(output, attention_mask)
+        else:
+            embeddings = self.pooling_layer(output)
 
         if self.normalize_embeddings:
             embeddings = normalize(embeddings, dim=-1)
@@ -73,7 +101,7 @@ class BiEncoder(LightningModule):
     def compute_accuracy(self, pos_scores: Tensor, neg_scores: Tensor) -> float:
         return self.accuracy(
             torch.where(pos_scores > neg_scores, 1, 0),
-            torch.ones(len(pos_scores), dtype=torch.long, device=self.device),
+            torch.ones(len(pos_scores), dtype=torch.long).to(self.device),
         )
 
     def training_step(self, batch, batch_idx) -> float:
@@ -103,14 +131,19 @@ class BiEncoder(LightningModule):
         return loss
 
     def forward(self, Q: dict[str, Tensor], D: dict[str, Tensor], k: int):
+        Q = {k: v.to(self.device) for k, v in Q.items()}
+        D = {k: v.to(self.device) for k, v in D.items()}
+
         Q = self.embed_queries(**Q)
         D = self.embed_docs(**D)
 
         scores = self.listwise_scoring(Q, D)
         scores = scores.reshape(len(Q), len(D) // len(Q))
-        scores, indices = torch.sort(scores, dim=-1, descending=True, stable=True)
+        scores, indices = torch.topk(scores, k, dim=-1)
+        # scores, indices = torch.sort(scores, dim=-1, descending=True, stable=True)
 
-        return indices[:, :k], scores[:, :k]
+        return indices, scores
+        # return indices[:, :k], scores[:, :k]
 
     def configure_optimizers(self):
         optimizer = self.optimizer(self.parameters(), lr=self.learning_rate)
