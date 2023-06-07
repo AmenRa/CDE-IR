@@ -34,7 +34,8 @@ class BiEncoder(LightningModule):
         self,
         encoder: str = "bert-base-uncased",
         pooling_strategy: str = "mean",
-        normalize_embeddings: bool = True,
+        normalize_embeddings: bool = False,
+        share_weights: bool = True,
         learning_rate: float = 3e-6,
         logit_scale: float = 20.0,
         criterion: nn.Module = nn.CrossEntropyLoss(),
@@ -43,7 +44,10 @@ class BiEncoder(LightningModule):
         super().__init__()
 
         # Architecture ---------------------------------------------------------
-        self.encoder = AutoModel.from_pretrained(encoder)
+        self.query_encoder = AutoModel.from_pretrained(encoder)
+        self.doc_encoder = (
+            self.query_encoder if share_weights else AutoModel.from_pretrained(encoder)
+        )
 
         if pooling_strategy == "mean":
             self.pooling_layer = MaskedMeanPooler()
@@ -73,13 +77,15 @@ class BiEncoder(LightningModule):
         # Other ----------------------------------------------------------------
         self.pooling_strategy = pooling_strategy
 
-    def embed_queries(self, input_ids: Tensor, attention_mask: Tensor) -> Tensor:
-        output = self.encoder(input_ids, attention_mask)
-
+    def pooling(self, output: Tensor, attention_mask: Tensor) -> Tensor:
         if self.pooling_strategy == "mean":
-            embeddings = self.pooling_layer(output, attention_mask)
+            return self.pooling_layer(output, attention_mask)
         else:
-            embeddings = self.pooling_layer(output)
+            return self.pooling_layer(output)
+
+    def embed_queries(self, input_ids: Tensor, attention_mask: Tensor) -> Tensor:
+        output = self.query_encoder(input_ids, attention_mask)
+        embeddings = self.poling(output, attention_mask)
 
         if self.normalize_embeddings:
             embeddings = normalize(embeddings, dim=-1)
@@ -87,7 +93,13 @@ class BiEncoder(LightningModule):
         return embeddings
 
     def embed_docs(self, input_ids: Tensor, attention_mask: Tensor) -> Tensor:
-        return self.embed_queries(input_ids, attention_mask)
+        output = self.doc_encoder(input_ids, attention_mask)
+        embeddings = self.poling(output, attention_mask)
+
+        if self.normalize_embeddings:
+            embeddings = normalize(embeddings, dim=-1)
+
+        return embeddings
 
     def scoring(self, Q: Tensor, D: Tensor) -> Tensor:
         return einsum("xz,xz->x", Q, D)

@@ -5,6 +5,7 @@ init:
   encoder: ${encoder.name}
   pooling_strategy: cls
   normalize_embeddings: false
+  share_weights: true
   learning_rate: ${training.learning_rate}
   logit_scale: 20.0
 
@@ -13,5 +14,6 @@ checkpoint:
   encoder: ${encoder.name}
   pooling_strategy: cls
   normalize_embeddings: false
+  share_weights: true
   learning_rate: ${training.learning_rate}
   logit_scale: 20.0

@@ -14,6 +14,7 @@ class ColBERT(LightningModule):
         self,
         encoder: str = "bert-base-uncased",
         embedding_dim: int = 128,
+        share_weights: bool = True,
         learning_rate: float = 3e-6,
         criterion: nn.Module = nn.CrossEntropyLoss(),
         scheduler_config: dict = None,
@@ -21,12 +22,24 @@ class ColBERT(LightningModule):
         super().__init__()
 
         # Architecture ---------------------------------------------------------
-        self.encoder = AutoModel.from_pretrained(encoder)
-        self.linear = nn.Linear(
+        self.query_encoder = AutoModel.from_pretrained(encoder)
+        self.query_compressor = nn.Linear(
             in_features=AutoConfig.from_pretrained(encoder).hidden_size,
             out_features=embedding_dim,
             bias=False,
         )
+
+        if share_weights:
+            self.doc_encoder = self.query_encoder
+            self.doc_compressor = self.query_compressor
+        else:
+            self.doc_encoder = AutoModel.from_pretrained(encoder)
+            self.doc_compressor = nn.Linear(
+                in_features=AutoConfig.from_pretrained(encoder).hidden_size,
+                out_features=embedding_dim,
+                bias=False,
+            )
+
         self.normalize = torch.nn.functional.normalize
 
         # Loss function --------------------------------------------------------
@@ -102,25 +115,8 @@ class ColBERT(LightningModule):
         max_term_sim_scores = term_sim_scores.max(dim=-1).values
         return max_term_sim_scores.sum(dim=-1)
 
-    def embed_texts(self, input_ids: Tensor, attention_mask: Tensor) -> Tensor:
-        """Computes embeddings with BERT followed by a linear layer for compression and L2 normalization.
-
-        Args:
-            input_ids (Tensor): [batch_size, n_tokens]
-            attention_mask (Tensor): [batch_size, n_tokens]
-
-        Returns:
-            Tensor: [batch_size, n_tokens, embedding_dim]
-        """
-
-        embeddings = self.encoder(input_ids, attention_mask).last_hidden_state
-        embeddings = self.linear(embeddings)
-        embeddings = self.normalize(embeddings, dim=-1)
-
-        return embeddings
-
     def embed_queries(self, input_ids: Tensor, attention_mask: Tensor) -> Tensor:
-        """Computes query embeddings.
+        """Encodes queries with the defined encoder followed by a linear layer for compression and L2 normalization.
 
         Args:
             input_ids (Tensor): [batch_size, n_tokens]
@@ -129,8 +125,9 @@ class ColBERT(LightningModule):
         Returns:
             Tensor: [batch_size, n_tokens, embedding_dim]
         """
-
-        return self.embed_texts(input_ids, attention_mask)
+        embeddings = self.query_encoder(input_ids, attention_mask).last_hidden_state
+        embeddings = self.query_compressor(embeddings)
+        return self.normalize(embeddings, dim=-1)
 
     def get_punctuation_mask(self, input_ids: Tensor) -> Tensor:
         """True where input is NOT a punctuation mark (or a padding token).
@@ -161,7 +158,7 @@ class ColBERT(LightningModule):
         return emb.masked_fill(punctuation_mask == 0, 0.0)
 
     def embed_docs(self, input_ids: Tensor, attention_mask: Tensor) -> Tensor:
-        """Computes document embeddings.
+        """Encodes documents with the defined encoder followed by a linear layer for compression and L2 normalization.
 
         Args:
             input_ids (Tensor): [batch_size, n_tokens]
@@ -170,10 +167,11 @@ class ColBERT(LightningModule):
         Returns:
             Tensor: [batch_size, n_tokens, embedding_dim]
         """
+        embeddings = self.doc_encoder(input_ids, attention_mask).last_hidden_state
+        embeddings = self.doc_compressor(embeddings)
+        embeddings = self.normalize(embeddings, dim=-1)
 
-        D_emb = self.embed_texts(input_ids, attention_mask)
-
-        return self.mask_punctuation(D_emb, input_ids)
+        return self.mask_punctuation(embeddings, input_ids)
 
     # In PyTorch Lightning, forward defines inference
     def forward(self, Q: Dict[str, Tensor], D: Dict[str, Tensor], k: int) -> Tensor:

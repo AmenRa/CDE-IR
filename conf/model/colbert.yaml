@@ -4,10 +4,12 @@ init:
   _target_: src.models.ColBERT
   encoder: ${encoder.name}
   embedding_dim: 128
+  share_weights: true
   learning_rate: ${training.learning_rate}
 
 checkpoint:
   _target_: src.models.ColBERT.load_from_checkpoint
   encoder: ${encoder.name}
   embedding_dim: 128
+  share_weights: true
   learning_rate: ${training.learning_rate}
