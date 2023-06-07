@@ -27,9 +27,5 @@ class QueryTokenizer:
             padding=True,
             truncation=True,
             return_tensors="pt",
-            # return_attention_mask=
-            # return_offsets_mapping=
-            # return_length=
-            # return_special_tokens_mask=
             return_token_type_ids=False,
         )

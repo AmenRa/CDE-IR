@@ -12,9 +12,7 @@ class CrossTokenizer:
         doc_max_len: int = 512,
     ):
         self.pre_tokenizer = BertPreTokenizer()
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            language_model, use_fast=True
-        )
+        self.tokenizer = AutoTokenizer.from_pretrained(language_model, use_fast=True)
         self.query_max_len = query_max_len
         self.doc_max_len = doc_max_len
 
@@ -24,16 +22,15 @@ class CrossTokenizer:
             for text in texts
         ]
         truncation_indices = [
-            [y for i, y in enumerate(x) if i < max_len][-1]
-            for x in token_boundaries
+            [y for i, y in enumerate(x) if i < max_len][-1] for x in token_boundaries
         ]
         return [t[:i] for t, i in zip(texts, truncation_indices)]
 
-    def __call__(self, queries: list[str], docs: list[str]) -> dict:
+    def __call__(self, queries: list[str], docs: list[str]) -> dict[str, Tensor]:
         return self.tokenizer(
             self.truncate(queries, self.query_max_len),
             self.truncate(docs, self.doc_max_len),
-            max_len=512,
+            max_length=512,
             padding=True,
             truncation=True,
             return_tensors="pt",
