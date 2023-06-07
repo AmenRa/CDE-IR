@@ -4,11 +4,11 @@ from transformers import AutoTokenizer
 class QueryTokenizer:
     def __init__(
         self,
-        language_model: str = "bert-base-uncased",
+        encoder: str = "bert-base-uncased",
         max_len: int = 32,
         add_prefix_token: bool = True,
     ):
-        self.tokenizer = AutoTokenizer.from_pretrained(language_model, use_fast=True)
+        self.tokenizer = AutoTokenizer.from_pretrained(encoder, use_fast=True)
 
         self.max_len = max_len
 

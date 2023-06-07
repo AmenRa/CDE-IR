@@ -1,5 +1,5 @@
 defaults:
-  - model: bi_enc
+  - model: bi_encoder
   - encoder: bert
   - tokenizer: default
   - criterion: cross_entropy

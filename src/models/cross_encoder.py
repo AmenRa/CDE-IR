@@ -14,7 +14,7 @@ from transformers import (
 class CrossEncoder(LightningModule):
     def __init__(
         self,
-        language_model: str = "bert-base-uncased",
+        encoder: str = "bert-base-uncased",
         learning_rate: float = 3e-6,
         criterion: nn.Module = nn.CrossEntropyLoss(),
         scheduler_config: dict = None,
@@ -22,12 +22,10 @@ class CrossEncoder(LightningModule):
         super().__init__()
 
         # Architecture ---------------------------------------------------------
-        if "distilbert" in language_model:
-            self.encoder = DistilBertForSequenceClassification.from_pretrained(
-                language_model
-            )
+        if "distilbert" in encoder:
+            self.encoder = DistilBertForSequenceClassification.from_pretrained(encoder)
         else:
-            self.encoder = BertForSequenceClassification.from_pretrained(language_model)
+            self.encoder = BertForSequenceClassification.from_pretrained(encoder)
 
         # Loss function --------------------------------------------------------
         self.criterion = criterion

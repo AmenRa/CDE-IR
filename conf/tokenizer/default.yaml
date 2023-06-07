@@ -1,13 +1,13 @@
 query_tokenizer:
   init:
     _target_: src.tokenizers.default.QueryTokenizer
-    language_model: ${language_model.name}
+    encoder: ${encoder.name}
     max_len: 16
     add_prefix_token: true
 
 doc_tokenizer:
   init:
     _target_: src.tokenizers.default.DocTokenizer
-    language_model: ${language_model.name}
+    encoder: ${encoder.name}
     max_len: 128
     add_prefix_token: true

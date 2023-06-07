@@ -7,12 +7,12 @@ from tokenizers.pre_tokenizers import BertPreTokenizer
 class CrossTokenizer:
     def __init__(
         self,
-        language_model: str = "bert-base-uncased",
+        encoder: str = "bert-base-uncased",
         query_max_len: int = 64,
         doc_max_len: int = 512,
     ):
         self.pre_tokenizer = BertPreTokenizer()
-        self.tokenizer = AutoTokenizer.from_pretrained(language_model, use_fast=True)
+        self.tokenizer = AutoTokenizer.from_pretrained(encoder, use_fast=True)
         self.query_max_len = query_max_len
         self.doc_max_len = doc_max_len
 
