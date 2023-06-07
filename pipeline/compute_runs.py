@@ -1,21 +1,15 @@
 import os
+from math import ceil
 
 import hydra
 import torch
 from loguru import logger
 from omegaconf import DictConfig
-from oneliner_utils import join_path, read_numpy, write_json
 from ranx import Qrels, Run, evaluate
+from tqdm import trange
+from unified_io import join_path, read_jsonl, read_numpy, write_json
 
 from src.utils import setup_logger
-
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
-
-from math import ceil
-
-import torch
-from oneliner_utils import read_jsonl
-from tqdm import trange
 
 
 def compute_run(query_embs, doc_embs, query_index, doc_ids_map):
@@ -50,7 +44,7 @@ def main(cfg: DictConfig) -> None:
     # Setup logger -------------------------------------------------------------
     setup_logger(
         logger,
-        dir=join_path(cfg.general.logs_dir, cfg.model.name),
+        dir=join_path(cfg.paths.logs, cfg.model.name),
         filename="compute_runs.log",
     )
 
@@ -71,8 +65,8 @@ def main(cfg: DictConfig) -> None:
         # "trec_dl_hard",
     ]:
         # I/O Paths ------------------------------------------------------------
-        os.makedirs(cfg.general.runs_dir, exist_ok=True)
-        out_path = join_path(cfg.general.runs_dir, f"{cfg.model.name}_{split}_run.json")
+        os.makedirs(cfg.paths.runs, exist_ok=True)
+        out_path = join_path(cfg.paths.runs, f"{cfg.model.name}_{split}_run.json")
 
         query_index = read_jsonl(f"datasets/msmarco_passage/{split}/queries.jsonl")
         query_embs = torch.from_numpy(

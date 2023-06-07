@@ -16,19 +16,22 @@ defaults:
 
 general:
   seed: 42
-  out_dir: outputs
-  dataset_name: msmarco-passage
-  dataset_dir: ${general.out_dir}/${general.dataset_name}
-  model_dir: ${general.dataset_dir}/${model.name}
-  checkpoints_dir: ${general.model_dir}/checkpoints
-  data_dir: ${general.model_dir}/data
-  logs_dir: ${general.model_dir}/logs
-  runs_dir: ${general.model_dir}/runs
-  hyperparams_dir: ${general.model_dir}/hyperparams
+  dataset: msmarco-passage
+  
+paths:
+  global_outputs: outputs
+  local_outputs: ${paths.global_outputs}/${general.dataset}
+  model: ${paths.local_outputs}/${model.name}
+  checkpoints: ${paths.model}/checkpoints
+  data: ${paths.model}/data
+  logs: ${paths.model}/logs
+  runs: ${paths.model}/runs
+  hyperparams: ${paths.model}/hyperparams
+
 
 compile_mode: default  # Options are default, reduce-overhead, and max-autotune
 
 hydra:
-  output_subdir: ${general.model_dir}/hydra  
+  output_subdir: ${paths.model}/hydra  
   run:  
     dir: .

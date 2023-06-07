@@ -9,7 +9,7 @@ check_val_every_n_epoch: 1000000
 # Checkpointing
 # checkpoint_callback: null
 enable_checkpointing: true
-default_root_dir: ${general.model_dir}
+default_root_dir: ${paths.model}
 # Utilities
 num_sanity_val_steps: 0
 limit_train_batches: 10000

@@ -15,7 +15,7 @@ class MaskedMeanPooler(nn.Module):
 
     def forward(self, input: Tensor, mask: Tensor) -> Tensor:
         embeddings = input.last_hidden_state
-        numerators = einsum("xyz,xy->xz", embeddings, mask)
+        numerators = einsum("xyz,xy->xz", embeddings, mask.to(embeddings.dtype))
         denominators = mask.sum(dim=1, keepdim=True)
         return numerators / torch.clamp(denominators, min=self.eps)
 
@@ -109,12 +109,13 @@ class BiEncoder(LightningModule):
         """Computes dot-product for each query-document pre-defined combination.
 
         Args:
-            Q (Tensor): [batch_size, embedding_dim]
-            D (Tensor): [batch_size * n_docs_per_query, embedding_dim]
+            Q (Tensor): [n_queries, embedding_dim]
+            D (Tensor): [n_queries * n_docs_per_query, embedding_dim]
 
         Returns:
-            Tensor: [batch_size, n_docs_per_query]
+            Tensor: [n_queries, n_docs_per_query]
         """
+
         n_docs_per_query = len(D) // len(Q)
         D = D.reshape(len(Q), n_docs_per_query, -1)
         return einsum("xz,xyz->xy", Q, D)

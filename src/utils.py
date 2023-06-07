@@ -4,7 +4,7 @@ import sys
 from typing import List
 
 from omegaconf import DictConfig
-from oneliner_utils import join_path
+from unified_io import join_path
 
 
 def load_obj(obj_path: str, default_obj_path: str = ""):

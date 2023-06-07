@@ -3,22 +3,18 @@ from collections import defaultdict
 
 import hydra
 import torch
-from hydra.utils import instantiate
+from hydra.utils import call, instantiate
 from loguru import logger
 from omegaconf import DictConfig
-from oneliner_utils import join_path, write_json
 from pytorch_lightning import seed_everything
 from ranx import Qrels, Run, evaluate
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from unified_io import join_path, write_json
 
-from src.collators import EvalCollator
-from src.datasets.msmarco_passage import EvalDataset
-from src.models import BiEncoder
-from src.tokenizers import DocTokenizer, QueryTokenizer
+from src.collators import CrossEvalCollator, EvalCollator
+from src.datasets.msmarco_passage import EvalDataset, get_qrels_path
 from src.utils import setup_logger
-
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 @hydra.main(config_path="../conf", config_name="config", version_base="1.2")
@@ -26,7 +22,7 @@ def main(cfg: DictConfig) -> None:
     # Setup logger -------------------------------------------------------------
     setup_logger(
         logger,
-        dir=join_path(cfg.general.logs_dir, cfg.model.name),
+        dir=join_path(cfg.paths.logs, cfg.model.name),
         filename="compute_reranking_runs.log",
     )
 
@@ -36,24 +32,28 @@ def main(cfg: DictConfig) -> None:
 
     # Tokenizers ---------------------------------------------------------------
     logger.info("Tokenizers")
-    query_tokenizer = QueryTokenizer(**cfg.tokenizer.query_tokenizer.init)
-    doc_tokenizer = DocTokenizer(**cfg.tokenizer.doc_tokenizer.init)
+    if "cross_encoder" in cfg.model.name:
+        cross_tokenizer = instantiate(cfg.tokenizer.init)
+    else:
+        query_tokenizer = instantiate(cfg.tokenizer.query_tokenizer.init)
+        doc_tokenizer = instantiate(cfg.tokenizer.doc_tokenizer.init)
 
     # Collator -----------------------------------------------------------------
     logger.info("Collator")
-    eval_collator = EvalCollator(
-        query_tokenizer=query_tokenizer, doc_tokenizer=doc_tokenizer
-    )
+    if "cross_encoder" in cfg.model.name:
+        eval_collator = CrossEvalCollator(cross_tokenizer)
+    else:
+        eval_collator = EvalCollator(query_tokenizer, doc_tokenizer)
 
     # Compute runs =============================================================
     for split in [
         # "dev",
-        "trec_dl_2019",
-        "trec_dl_2020",
+        "trec-dl-2019",
+        "trec-dl-2020",
     ]:
         # I/O Paths ------------------------------------------------------------
-        os.makedirs(cfg.general.runs_dir, exist_ok=True)
-        out_path = join_path(cfg.general.runs_dir, f"{cfg.model.name}_{split}_run.json")
+        os.makedirs(cfg.paths.runs, exist_ok=True)
+        out_path = join_path(cfg.paths.runs, f"{split}_run.json")
 
         # logger.info("Dataset")
         dataset = EvalDataset(split=split)
@@ -71,10 +71,12 @@ def main(cfg: DictConfig) -> None:
         )
 
         # Load model -----------------------------------------------------------
-        model = BiEncoder.load_from_checkpoint(
-            join_path(cfg.general.model_dir, "model.ckpt"),
-            **cfg.model.params,
-        ).cuda()
+        model = call(
+            cfg.model.checkpoint,
+            checkpoint_path=join_path(cfg.paths.model, "model.ckpt"),
+        )
+
+        model = model.cuda()
         model.eval()
 
         run = defaultdict(dict)
@@ -82,20 +84,14 @@ def main(cfg: DictConfig) -> None:
         logger.info(f"Computing {split} run")
         with torch.cuda.amp.autocast(), torch.no_grad():
             for batch in tqdm(dataloader, dynamic_ncols=True):
-                (
-                    batch_query_id,
-                    batch_rel_doc_ids,
-                    batch_doc_ids,
-                    batch_query,
-                    batch_docs,
-                ) = batch
-
-                batch_query["input_ids"] = batch_query["input_ids"].cuda()
-                batch_query["attention_mask"] = batch_query["attention_mask"].cuda()
-                batch_docs["input_ids"] = batch_docs["input_ids"].cuda()
-                batch_docs["attention_mask"] = batch_docs["attention_mask"].cuda()
-
-                indices, sorted_scores = model.forward(batch_query, batch_docs, k=1000)
+                if "cross_encoder" in cfg.model.name:
+                    batch_query_id, batch_doc_ids, batch_tokens = batch
+                    indices, sorted_scores = model.forward(batch_tokens, k=1000)
+                else:
+                    batch_query_id, batch_doc_ids, batch_query, batch_docs = batch
+                    indices, sorted_scores = model.forward(
+                        batch_query, batch_docs, k=1000
+                    )
 
                 # Update run
                 for i, (q_id, doc_ids) in enumerate(zip(batch_query_id, batch_doc_ids)):
@@ -107,14 +103,10 @@ def main(cfg: DictConfig) -> None:
                         except:
                             pass
 
-        write_json(run, out_path)
-
-        qrels = Qrels.from_file(f"datasets/msmarco_passage/{split}/qrels.json")
         run = Run(run)
+        run.save(out_path)
 
-        # for q_id in list(qrels.qrels):
-        #     if q_id not in list(run.run):
-        #         del qrels.qrels[q_id]
+        qrels = Qrels.from_file(get_qrels_path(split))
 
         if split == "dev":
             mrr_score = round(evaluate(qrels, run, "mrr@10") * 100, 2)

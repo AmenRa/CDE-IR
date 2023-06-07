@@ -1,5 +1,8 @@
 /datasets
+/datasets_bkp
 /outputs
+/outputs_bkp
+/runs
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

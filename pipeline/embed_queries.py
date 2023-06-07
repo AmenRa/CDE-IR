@@ -10,15 +10,13 @@ import torch
 from hydra.utils import instantiate
 from loguru import logger
 from omegaconf import DictConfig
-from oneliner_utils import join_path, read_jsonl, write_numpy
 from pytorch_lightning import seed_everything
 from tqdm import tqdm
+from unified_io import join_path, read_jsonl, write_numpy
 
 from src.models import BiEncoder
 from src.tokenizers import QueryTokenizer
 from src.utils import setup_logger
-
-os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
 
 @hydra.main(config_path="../conf", config_name="config", version_base="1.2")
@@ -26,7 +24,7 @@ def main(cfg: DictConfig) -> None:
     # Setup logger -------------------------------------------------------------
     setup_logger(
         logger,
-        dir=join_path(cfg.general.logs_dir, cfg.model.name),
+        dir=join_path(cfg.paths.logs, cfg.model.name),
         filename="embed_queries.log",
     )
 
@@ -37,7 +35,7 @@ def main(cfg: DictConfig) -> None:
     # Load model ---------------------------------------------------------------
     logger.info("Model")
     model = BiEncoder.load_from_checkpoint(
-        join_path(cfg.general.model_dir, "model.ckpt"), **cfg.model.params
+        join_path(cfg.paths.model, "model.ckpt"), **cfg.model.params
     ).cuda()
     model.eval()
 

@@ -1,26 +1,27 @@
 import random
-from pathlib import Path
 
 from indxr import Indxr
-from oneliner_utils import read_list
 from torch.utils.data import Dataset
+from unified_io import read_list
+
+from .paths import *
 
 
 class TrainDataset(Dataset):
-    def __init__(self, n_samples: int = 0):
-        datasets_path = Path("datasets")
-        msmarco_passage_path = datasets_path / "msmarco_passage"
-        train_set_path = msmarco_passage_path / "train"
-        collection_path = msmarco_passage_path / "collection.jsonl"
-        queries_path = train_set_path / "queries.jsonl"
-        triples_path = train_set_path / "triples.tsv"
+    def __init__(self, kind: str = "triples", n_samples: int = 0):
+        assert kind in {"triples", "negatives"}
 
-        self.queries_index = Indxr(str(queries_path))
-        self.doc_index = Indxr(str(collection_path))
-        self.train_triples = read_list(triples_path)
+        self.queries_index = Indxr(train_queries_path())
+        self.doc_index = Indxr(collection_path())
 
-        if n_samples > 0:
-            self.train_triples = random.sample(self.train_triples, n_samples)
+        if kind == "triples":
+            self.train_triples = read_list(train_triples_path())
+            if n_samples > 0:
+                self.train_triples = random.sample(self.train_triples, n_samples)
+
+        elif kind == "negatives":
+            self.relevants_index = Indxr(train_relevants_path())
+            self.negatives_index = Indxr(train_negatives_path())
 
     def get_query(self, q_id):
         return self.queries_index.get(q_id)["text"]

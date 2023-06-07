@@ -5,15 +5,14 @@ import torch
 from hydra.utils import instantiate
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
-from oneliner_utils import join_path
 from pytorch_lightning import Trainer, seed_everything
 from torch.utils.data import DataLoader
+from unified_io import join_path
 
 from src.collators import CrossTrainCollator, TrainCollator
 from src.datasets.msmarco_passage import TrainDataset, download_msmarco
 from src.utils import get_pl_callbacks, get_pl_loggers, setup_logger
 
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
 torch.set_float32_matmul_precision("medium")
 
 
@@ -22,7 +21,7 @@ def main(cfg: DictConfig) -> None:
     # Setup logger -------------------------------------------------------------
     setup_logger(
         logger,
-        dir=join_path(cfg.general.logs_dir, cfg.model.name),
+        dir=join_path(cfg.paths.logs, cfg.model.name),
         filename="training.log",
     )
 
@@ -52,10 +51,10 @@ def main(cfg: DictConfig) -> None:
     # Dataset  -----------------------------------------------------------------
     logger.info("Dataset")
     n_samples = cfg.dataloader.batch_size * cfg.trainer.limit_train_batches
-    train_dataset = TrainDataset(n_samples)
+    train_dataset = TrainDataset(n_samples=n_samples)
 
-    # Dataloader  --------------------------------------------------------------
-    logger.info("Dataloader")
+    # DataLoader  --------------------------------------------------------------
+    logger.info("DataLoader")
     train_loader = DataLoader(
         train_dataset, **cfg.dataloader, collate_fn=train_collator
     )
@@ -86,7 +85,7 @@ def main(cfg: DictConfig) -> None:
 
     # Save trained model -------------------------------------------------------
     logger.info("Save model")
-    trainer.save_checkpoint(join_path(cfg.general.model_dir, "model.ckpt"))
+    trainer.save_checkpoint(join_path(cfg.paths.model, "model.ckpt"))
 
     logger.success("Training complete!")
 
