@@ -174,26 +174,6 @@ class ColBERT(LightningModule):
 
         return self.mask_punctuation(embeddings, input_ids)
 
-    # In PyTorch Lightning, forward defines inference
-    def forward(self, Q: Dict[str, Tensor], D: Dict[str, Tensor], k: int) -> Tensor:
-        Q = {k: v.to(self.device) for k, v in Q.items()}
-        D = {k: v.to(self.device) for k, v in D.items()}
-
-        Q = self.embed_queries(**Q)
-        D = self.embed_docs(**D)
-
-        scores = self.listwise_maxsim(Q, D)
-        scores = scores.reshape(len(Q), len(D) // len(Q))
-        scores, indices = torch.sort(scores, dim=-1, descending=True, stable=True)
-
-        return indices[:, :k], scores[:, :k]
-
-    def compute_accuracy(self, pos_scores: Tensor, neg_scores: Tensor) -> float:
-        return self.accuracy(
-            torch.where(pos_scores > neg_scores, 1, 0),
-            torch.ones(len(pos_scores), dtype=torch.long).to(self.device),
-        )
-
     # In PyTorch Lightning, training_step is called during training.
     # It is used to separate the training forward from the inference forward.
     def training_step(
@@ -217,20 +197,11 @@ class ColBERT(LightningModule):
 
         # Compute embeddings ---------------------------------------------------
         Q_emb = self.embed_queries(**Q)
-        # D_emb = self.embed_docs(**D)
+        D_emb = self.embed_docs(**D)
         # D_pos_emb, D_neg_emb = D_emb.tensor_split(2)
 
         # Compute scores -------------------------------------------------------
-        scores = torch.zeros(batch_size, 2 * batch_size, device=self.device)
-        reduction_factor = 2
-        mini_batch_size = batch_size // reduction_factor
-        for i in range(2 * reduction_factor):
-            start, stop = i * mini_batch_size, (i + 1) * mini_batch_size
-            D_emb = self.embed_docs(**{k: v[start:stop] for k, v in D.items()})
-            scores[:, start:stop] = self.in_batch_maxsim(Q_emb, D_emb)
-            del D_emb  # Release memory
-
-        # scores = self.in_batch_maxsim(Q_emb, D_emb)
+        scores = self.in_batch_maxsim(Q_emb, D_emb)
 
         # pos_scores = self.maxsim(Q_emb, D_pos_emb)
         # neg_scores = self.maxsim(Q_emb, D_neg_emb)
@@ -259,18 +230,43 @@ class ColBERT(LightningModule):
 
         return loss
 
-    def forward_precomputed(self, Q_emb: Tensor, D_emb: Tensor, k: int):
-        scores = self.listwise_maxsim(Q_emb, D_emb)
-        scores = scores.reshape(Q_emb.shape[0], int(D_emb.shape[0] / Q_emb.shape[0]))
-
-        scores, indices = torch.sort(
-            scores,
-            dim=-1,
-            descending=True,
-            stable=True,
+    def compute_accuracy(self, pos_scores: Tensor, neg_scores: Tensor) -> float:
+        return self.accuracy(
+            torch.where(pos_scores > neg_scores, 1, 0),
+            torch.ones(len(pos_scores), dtype=torch.long).to(self.device),
         )
 
-        return indices[:k], scores[:k]
+    def topk(self, Q: Tensor, D: Tensor, k: int):
+        """Find the top-k documents for each query."""
+        scores = self.listwise_maxsim(Q, D).reshape(len(Q), len(D) // len(Q))
+        scores, indices = torch.topk(scores, k, dim=-1)
+
+        return indices, scores
+
+    def forward(
+        self, Q: Dict[str, Tensor], D: Dict[str, Tensor], k: int
+    ) -> tuple[Tensor, Tensor]:
+        """Inference method."""
+        # Move input to device -------------------------------------------------
+        Q = {k: v.to(self.device) for k, v in Q.items()}
+        D = {k: v.to(self.device) for k, v in D.items()}
+
+        # Generate embeddings --------------------------------------------------
+        Q = self.embed_queries(**Q)
+        D = self.embed_docs(**D)
+
+        # Compute Top-k --------------------------------------------------------
+        return self.topk(Q, D, k)
+
+    def forward_precomputed(
+        self, Q: Tensor, D: Tensor, k: int
+    ) -> tuple[Tensor, Tensor]:
+        # Move input to device -------------------------------------------------
+        Q = Q.to(self.device)
+        D = D.to(self.device)
+
+        # Compute Top-k --------------------------------------------------------
+        return self.topk(Q, D, k)
 
     def configure_optimizers(self):
         return configure_optimizers_and_schedulers(self)

@@ -143,18 +143,38 @@ class BiEncoder(LightningModule):
 
         return loss
 
-    def forward(self, Q: dict[str, Tensor], D: dict[str, Tensor], k: int):
-        Q = {k: v.to(self.device) for k, v in Q.items()}
-        D = {k: v.to(self.device) for k, v in D.items()}
-
-        Q = self.embed_queries(**Q)
-        D = self.embed_docs(**D)
-
-        scores = self.listwise_scoring(Q, D)
-        scores = scores.reshape(len(Q), len(D) // len(Q))
+    def topk(self, Q: Tensor, D: Tensor, k: int):
+        """Find the top-k documents for each query."""
+        scores = self.listwise_scoring(Q, D).reshape(len(Q), len(D) // len(Q))
         scores, indices = torch.topk(scores, k, dim=-1)
 
         return indices, scores
+
+    def forward(
+        self, Q: dict[str, Tensor], D: dict[str, Tensor], k: int
+    ) -> tuple[Tensor, Tensor]:
+        """Inference method."""
+        # Move input to device -------------------------------------------------
+        Q = {k: v.to(self.device) for k, v in Q.items()}
+        D = {k: v.to(self.device) for k, v in D.items()}
+
+        # Generate embeddings --------------------------------------------------
+        Q = self.embed_queries(**Q)
+        D = self.embed_docs(**D)
+
+        # Compute Top-k --------------------------------------------------------
+        return self.topk(Q, D, k)
+
+    def forward_precomputed(
+        self, Q: Tensor, D: Tensor, k: int
+    ) -> tuple[Tensor, Tensor]:
+        """Inference method for precomputed embeddings."""
+        # Move input to device -------------------------------------------------
+        Q = Q.to(self.device)
+        D = D.to(self.device)
+
+        # Compute Top-k --------------------------------------------------------
+        return self.topk(Q, D, k)
 
     def configure_optimizers(self):
         return configure_optimizers_and_schedulers(self)

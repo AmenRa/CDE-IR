@@ -76,13 +76,17 @@ class CrossEncoder(LightningModule):
         indices, scores = [], []
 
         for tokens in batch:
+            # Move input to device ---------------------------------------------
             tokens = {k: v.to(self.device) for k, v in tokens.items()}
 
+            # Compute scores ---------------------------------------------------
             _scores = torch.zeros((len(tokens["input_ids"])))
+
             for i in range(ceil(len(tokens["input_ids"]) // 500)):
                 start, stop = i * 500, (i + 1) * 500
                 _tokens = {k: v[start:stop] for k, v in tokens.items()}
                 _scores[start:stop] = self.encoder(**_tokens).logits[:, 0]
+
             _scores, _indices = torch.topk(_scores, k, dim=-1)
 
             indices.append(_indices)
