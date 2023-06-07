@@ -1,7 +1,6 @@
 from math import ceil
 
 import torch
-from hydra.utils import instantiate
 from pytorch_lightning import LightningModule
 from torch import Tensor, column_stack, long, nn, zeros
 from torchmetrics import Accuracy
@@ -9,6 +8,8 @@ from transformers import (
     BertForSequenceClassification,
     DistilBertForSequenceClassification,
 )
+
+from .utils import configure_optimizers_and_schedulers
 
 
 class CrossEncoder(LightningModule):
@@ -90,22 +91,4 @@ class CrossEncoder(LightningModule):
         return indices, scores
 
     def configure_optimizers(self):
-        optimizer = self.optimizer(self.parameters(), lr=self.learning_rate)
-
-        if self.scheduler_config is None:
-            return optimizer
-
-        self.scheduler_config["optimizer"] = optimizer
-        scheduler = instantiate(self.scheduler_config)
-
-        return (
-            [optimizer],
-            [
-                {
-                    "scheduler": scheduler,
-                    "interval": "step",
-                    "frequency": 1,
-                    "reduce_on_plateau": False,
-                }
-            ],
-        )
+        return configure_optimizers_and_schedulers(self)

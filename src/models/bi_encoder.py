@@ -1,10 +1,11 @@
 import torch
-from hydra.utils import instantiate
 from pytorch_lightning import LightningModule
 from torch import Tensor, einsum, nn
 from torch.nn.functional import normalize
 from torchmetrics import Accuracy
 from transformers import AutoModel
+
+from .utils import configure_optimizers_and_schedulers
 
 
 class MaskedMeanPooler(nn.Module):
@@ -85,7 +86,7 @@ class BiEncoder(LightningModule):
 
     def embed_queries(self, input_ids: Tensor, attention_mask: Tensor) -> Tensor:
         output = self.query_encoder(input_ids, attention_mask)
-        embeddings = self.poling(output, attention_mask)
+        embeddings = self.pooling(output, attention_mask)
 
         if self.normalize_embeddings:
             embeddings = normalize(embeddings, dim=-1)
@@ -94,7 +95,7 @@ class BiEncoder(LightningModule):
 
     def embed_docs(self, input_ids: Tensor, attention_mask: Tensor) -> Tensor:
         output = self.doc_encoder(input_ids, attention_mask)
-        embeddings = self.poling(output, attention_mask)
+        embeddings = self.pooling(output, attention_mask)
 
         if self.normalize_embeddings:
             embeddings = normalize(embeddings, dim=-1)
@@ -152,28 +153,8 @@ class BiEncoder(LightningModule):
         scores = self.listwise_scoring(Q, D)
         scores = scores.reshape(len(Q), len(D) // len(Q))
         scores, indices = torch.topk(scores, k, dim=-1)
-        # scores, indices = torch.sort(scores, dim=-1, descending=True, stable=True)
 
         return indices, scores
-        # return indices[:, :k], scores[:, :k]
 
     def configure_optimizers(self):
-        optimizer = self.optimizer(self.parameters(), lr=self.learning_rate)
-
-        if self.scheduler_config is None:
-            return optimizer
-
-        self.scheduler_config["optimizer"] = optimizer
-        scheduler = instantiate(self.scheduler_config)
-
-        return (
-            [optimizer],
-            [
-                {
-                    "scheduler": scheduler,
-                    "interval": "step",
-                    "frequency": 1,
-                    "reduce_on_plateau": False,
-                }
-            ],
-        )
+        return configure_optimizers_and_schedulers(self)
