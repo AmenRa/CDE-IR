@@ -1,18 +1,32 @@
-# CDD for IR Experiments
+<p align="center">
+  <!-- Python -->
+  <a href="https://www.python.org" alt="Python">
+      <img src="https://badges.aleen42.com/src/python.svg" />
+  </a>
+  <!-- Black -->
+  <a href="https://github.com/psf/black" alt="Code style: black">
+      <img src="https://img.shields.io/badge/code%20style-black-000000.svg" />
+  </a>
+  <!-- License -->
+  <a href="https://lbesson.mit-license.org/"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+</p>
+
+# Configuration-Driven Experimentation for Information Retrieval
 
 Disclaimer: This is a work in progress.
 
 ## What is this repo?
-This repo is a boilerplate for applying Configuration-Driven Development (CDD) to Information Retrieval (IR) experiments.
+This repo is a boilerplate for applying Configuration-Driven Experimentation (CDE) to Information Retrieval (IR) research.
 It supports experiments on [MSMARCO Passage Ranking v1](https://microsoft.github.io/msmarco) and implements the following Neural Retrieval architectures: BiEncoder, CrossEncoder, ColBERT.
 
-## What is CDD?
-Configuration-Driven Development (CDD) is a software development approach that emphasizes the use of configuration files to define and control the behavior of an application.
+## What is Configuration-Driven Experimentation?
+Configuration-Driven Experimentation (CDE) aims to bring the main principles of Configuration-Driven Development (CDD) to Computer Science research experiments.
+CDD is a software development approach that emphasizes the use of configuration files to define and control the behavior of an application.
 In CDD, instead of hard-coding specific values or logic directly into the source code, developers rely on external configuration files to specify various aspects of the application's behavior.
 
-## Why CDD for Information Retrieval experiments?
+## Why CDE for Information Retrieval?
 
-CDD can be particularly useful for IR experiments for several reasons:
+CDE can be particularly useful for IR experiments for several reasons:
 
 1. **Flexibility in Experiment Setup**: IR experiments often involve testing different retrieval models, algorithms, parameters, or data preprocessing techniques. CDD allows researchers to define and modify these experimental configurations without changing the source code directly. This flexibility enables quick iteration and experimentation with various settings.
 
@@ -29,5 +43,16 @@ By adopting Configuration-Driven Development in IR experiments, researchers can 
 ## Software stack
 - [PyTorch](https://pytorch.org)
 - [PyTorch Lightning](https://www.pytorchlightning.ai/index.html)
+- [Transformers](https://huggingface.co/transformers)
 - [ir-datasets](https://ir-datasets.com)
 - [ranx](https://github.com/AmenRa/ranx)
+- [indxr](https://github.com/AmenRa/indxr)
+- [Loguru](https://github.com/Delgan/loguru)
+- [Hydra](https://hydra.cc)
+
+
+## Requirements
+To use this repo, simply run this command:
+```bash
+conda env crete -f env.yml
+```
