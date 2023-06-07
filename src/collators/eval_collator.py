@@ -1,8 +1,5 @@
 from typing import Callable, Union
 
-import torch
-from torch import Tensor
-
 
 class EvalCollator:
     def __init__(
@@ -25,9 +22,7 @@ class EvalCollator:
         """
         return doc_ids + ["fake_doc"] * (max_len - len(doc_ids))
 
-    def pad_batch_doc_ids(
-        self, batch_doc_ids: list[list[str]]
-    ) -> list[list[str]]:
+    def pad_batch_doc_ids(self, batch_doc_ids: list[list[str]]) -> list[list[str]]:
         """Pads a batch of Document IDs to maximum length found in the batch.
 
         Args:
@@ -42,12 +37,11 @@ class EvalCollator:
     def __call__(self, batch: list[str]):
         """Call method."""
 
-        batch_query = [x["query"] for x in batch]
-        batch_docs = [x["docs"] for x in batch]
-
         batch_query_id = [x["query_id"] for x in batch]
-        batch_rel_doc_ids = [x["rel_doc_ids"] for x in batch]
+        batch_query = [x["query"] for x in batch]
+
         batch_doc_ids = self.pad_batch_doc_ids([x["doc_ids"] for x in batch])
+        batch_docs = [x["docs"] for x in batch]
 
         # Encode texts ---------------------------------------------------------
         encoded_queries = self.query_tokenizer(batch_query)
@@ -55,7 +49,6 @@ class EvalCollator:
 
         return (
             batch_query_id,
-            batch_rel_doc_ids,
             batch_doc_ids,
             encoded_queries,
             encoded_docs,
