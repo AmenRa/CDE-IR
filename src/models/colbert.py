@@ -84,22 +84,25 @@ class ColBERT(LightningModule):
 
         return max_term_sim_scores.sum(-1)
 
-    def listwise_maxsim(self, Q_emb: Tensor, D_emb: Tensor) -> Tensor:
+    def listwise_maxsim(self, Q: Tensor, D: Tensor) -> Tensor:
         """Computes `maxsim` for each query-document pre-defined combination.
 
         Args:
-            Q_emb (Tensor): [batch_size, n_tokens, embedding_dim]
-            D_emb (Tensor): [batch_size * n_docs_per_query, n_tokens, embedding_dim]
+            Q_emb (Tensor): [n_queries, n_tokens, embedding_dim]
+            D_emb (Tensor): [n_queries * n_docs_per_query, n_tokens, embedding_dim]
 
         Returns:
-            Tensor: [batch_size * n_docs_per_query]
+            Tensor: [n_queries * n_docs_per_query]
         """
 
-        # Repeat query embeddings to match document embeddings
-        n_docs_per_query = D_emb.shape[0] // Q_emb.shape[0]
-        Q_emb = Q_emb.repeat_interleave(n_docs_per_query, dim=0)
+        # Reshape D to [n_queries, n_docs_per_query, n_tokens, embedding_dim] --
+        n_docs_per_query = len(D) // len(Q)
+        D = D.reshape(len(Q), n_docs_per_query, D.size(-2), D.size(-1))
 
-        return self.maxsim(Q_emb, D_emb)
+        # Compute maxsim for each query-document combination -------------------
+        term_sim_scores = torch.einsum("xbz,xydz->xybd", Q, D)
+        max_term_sim_scores = term_sim_scores.max(dim=-1).values
+        return max_term_sim_scores.sum(dim=-1)
 
     def in_batch_maxsim(self, Q_emb: Tensor, D_emb: Tensor) -> Tensor:
         """Computes `maxsim` for each possible query-document combination in the batch.
@@ -174,13 +177,7 @@ class ColBERT(LightningModule):
 
         return self.mask_punctuation(embeddings, input_ids)
 
-    # In PyTorch Lightning, training_step is called during training.
-    # It is used to separate the training forward from the inference forward.
-    def training_step(
-        self,
-        batch,
-        batch_idx,
-    ) -> float:
+    def training_step(self, batch, batch_idx) -> float:
         """Training step modeled around STAR training strategy proposed by Zhan et al., SIGIR '21 - https://dl.acm.org/doi/10.1145/3404835.3462880.
 
         Args:
@@ -238,7 +235,7 @@ class ColBERT(LightningModule):
 
     def topk(self, Q: Tensor, D: Tensor, k: int):
         """Find the top-k documents for each query."""
-        scores = self.listwise_maxsim(Q, D).reshape(len(Q), len(D) // len(Q))
+        scores = self.listwise_maxsim(Q, D)
         scores, indices = torch.topk(scores, k, dim=-1)
 
         return indices, scores

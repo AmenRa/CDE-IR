@@ -106,10 +106,18 @@ class BiEncoder(LightningModule):
         return einsum("xz,xz->x", Q, D)
 
     def listwise_scoring(self, Q: Tensor, D: Tensor) -> Tensor:
-        n_docs_per_query = len(D) // len(Q)
-        Q = Q.repeat_interleave(n_docs_per_query, dim=0)
+        """Computes dot-product for each query-document pre-defined combination.
 
-        return self.scoring(Q, D)
+        Args:
+            Q (Tensor): [batch_size, embedding_dim]
+            D (Tensor): [batch_size * n_docs_per_query, embedding_dim]
+
+        Returns:
+            Tensor: [batch_size, n_docs_per_query]
+        """
+        n_docs_per_query = len(D) // len(Q)
+        D = D.reshape(len(Q), n_docs_per_query, -1)
+        return einsum("xz,xyz->xy", Q, D)
 
     def compute_accuracy(self, pos_scores: Tensor, neg_scores: Tensor) -> float:
         return self.accuracy(
@@ -145,7 +153,7 @@ class BiEncoder(LightningModule):
 
     def topk(self, Q: Tensor, D: Tensor, k: int):
         """Find the top-k documents for each query."""
-        scores = self.listwise_scoring(Q, D).reshape(len(Q), len(D) // len(Q))
+        scores = self.listwise_scoring(Q, D)
         scores, indices = torch.topk(scores, k, dim=-1)
 
         return indices, scores
