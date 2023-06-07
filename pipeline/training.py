@@ -9,9 +9,8 @@ from oneliner_utils import join_path
 from pytorch_lightning import Trainer, seed_everything
 from torch.utils.data import DataLoader
 
-from src.collators import TrainCollator
+from src.collators import CrossTrainCollator, TrainCollator
 from src.datasets.msmarco_passage import TrainDataset, download_msmarco
-from src.tokenizers import DocTokenizer, QueryTokenizer
 from src.utils import get_pl_callbacks, get_pl_loggers, setup_logger
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -37,14 +36,18 @@ def main(cfg: DictConfig) -> None:
 
     # Tokenizers ---------------------------------------------------------------
     logger.info("Tokenizers")
-    query_tokenizer = QueryTokenizer(**cfg.tokenizer.query_tokenizer.init)
-    doc_tokenizer = DocTokenizer(**cfg.tokenizer.doc_tokenizer.init)
+    if "cross_encoder" in cfg.model.name:
+        cross_tokenizer = instantiate(cfg.tokenizer.init)
+    else:
+        query_tokenizer = instantiate(cfg.tokenizer.query_tokenizer.init)
+        doc_tokenizer = instantiate(cfg.tokenizer.doc_tokenizer.init)
 
     # Collator -----------------------------------------------------------------
     logger.info("Collator")
-    train_collator = TrainCollator(
-        query_tokenizer=query_tokenizer, doc_tokenizer=doc_tokenizer
-    )
+    if "cross_encoder" in cfg.model.name:
+        train_collator = CrossTrainCollator(cross_tokenizer)
+    else:
+        train_collator = TrainCollator(query_tokenizer, doc_tokenizer)
 
     # Dataset  -----------------------------------------------------------------
     logger.info("Dataset")
@@ -67,12 +70,14 @@ def main(cfg: DictConfig) -> None:
 
     # Model --------------------------------------------------------------------
     logger.info("Model")
-    model = instantiate(cfg.model.config, criterion=instantiate(cfg.criterion.config))
+    model = instantiate(cfg.model.init, criterion=instantiate(cfg.criterion.config))
 
     # Scheduler ----------------------------------------------------------------
     logger.info("Scheduler")
     scheduler_config = OmegaConf.to_container(cfg.scheduler.config, resolve=True)
-    scheduler_config["first_cycle_steps"] = cfg.trainer.limit_train_batches
+    steps = cfg.trainer.limit_train_batches // cfg.trainer.accumulate_grad_batches
+    scheduler_config["first_cycle_steps"] = steps
+    scheduler_config["warmup_steps"] = 0.1 * steps
     model.scheduler_config = scheduler_config
 
     # Training -----------------------------------------------------------------
