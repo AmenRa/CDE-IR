@@ -1,0 +1,7 @@
+name: SymmetricCrossEntropy
+
+config:
+  _target_: src.criterions.SymmetricCrossEntropy
+  alpha: 0.1
+  beta: 1.0
+  num_classes: 2

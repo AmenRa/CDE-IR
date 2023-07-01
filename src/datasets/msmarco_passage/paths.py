@@ -30,6 +30,14 @@ def train_negatives_path():
     return train_set_path() / "negatives.jsonl"
 
 
+def train_teacher_run_compressed_path():
+    return train_set_path() / "teacher_run.pkl.gz"
+
+
+def train_teacher_run_path():
+    return train_set_path() / "teacher_run.jsonl"
+
+
 # Val --------------------------------------------------------------------------
 def val_set_path():
     return msmarco_passage_path() / "val"

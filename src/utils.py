@@ -1,10 +1,47 @@
 import importlib
 import os
 import sys
+import urllib.request
+from pathlib import Path
 from typing import List
 
+import requests
 from omegaconf import DictConfig
+from tqdm import tqdm
 from unified_io import join_path
+
+
+def download_file(url: str, path: str, desc: str = "Downloading", resume: bool = True):
+    path = Path(path)
+    byte_position = path.stat().st_size if resume and path.exists() else 0
+
+    # Get file size
+    file_size = int(urllib.request.urlopen(url).info().get_all("Content-Length")[0])
+
+    if byte_position >= file_size:
+        return
+
+    # Add information to resume download at specific byte position to header
+    resume_header = {"Range": f"bytes={byte_position}-"} if byte_position > 0 else None
+
+    # Establish connection
+    r = requests.get(url, stream=True, headers=resume_header)
+
+    block_size = 1024
+
+    with open(path, mode="ab" if byte_position > 0 else "wb") as f:
+        with tqdm(
+            total=file_size,
+            unit="B",
+            unit_scale=True,
+            desc=desc,
+            initial=byte_position,
+            miniters=1,
+            dynamic_ncols=True,
+        ) as pbar:
+            for chunk in r.iter_content(32 * block_size):
+                f.write(chunk)
+                pbar.update(len(chunk))
 
 
 def load_obj(obj_path: str, default_obj_path: str = ""):

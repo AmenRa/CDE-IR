@@ -63,6 +63,7 @@ class BiEncoder(LightningModule):
 
         # Training -------------------------------------------------------------
         self.logit_scale = logit_scale if normalize_embeddings else 1.0
+        self.temperature = torch.nn.Parameter(torch.ones(1))
 
         # Loss function --------------------------------------------------------
         self.criterion = criterion
@@ -136,7 +137,7 @@ class BiEncoder(LightningModule):
         D_emb = self.embed_docs(**D)
 
         # Compute scores -------------------------------------------------------
-        scores = torch.mm(Q_emb, D_emb.T) * self.logit_scale
+        scores = torch.mm(Q_emb, D_emb.T) / self.temperature
 
         # Compute loss ---------------------------------------------------------
         loss = self.criterion(scores, torch.arange(batch_size).to(self.device))
@@ -148,6 +149,7 @@ class BiEncoder(LightningModule):
 
         # Logging --------------------------------------------------------------
         self.log("accuracy", accuracy, on_step=True, on_epoch=False)
+        self.log("temperature", self.temperature, on_step=True, on_epoch=False)
         self.log("loss", loss, on_step=True, on_epoch=False, prog_bar=True)
 
         return loss

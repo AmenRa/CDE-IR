@@ -1,9 +1,13 @@
 import contextlib
+import gzip
+import pickle
 from collections import defaultdict
 
 import ir_datasets
 from tqdm import tqdm
 from unified_io import write_json, write_jsonl, write_list
+
+from src.utils import download_file
 
 from .paths import *
 
@@ -91,6 +95,31 @@ def download_train_triples():
             path=train_triples_path(),
             callback=lambda x: f"{x.query_id}\t{x.doc_id_a}\t{x.doc_id_b}",
         )
+
+
+def download_train_teacher_run():
+    # Download -----------------------------------------------------------------
+    url = "https://huggingface.co/datasets/sentence-transformers/msmarco-hard-negatives/resolve/main/cross-encoder-ms-marco-MiniLM-L-6-v2-scores.pkl.gz"
+    download_file(
+        url, train_teacher_run_compressed_path(), "Downloading teacher train run"
+    )
+
+    # Extract ------------------------------------------------------------------
+    with gzip.open("cross-encoder-ms-marco-MiniLM-L-6-v2-scores.pkl.gz", "rb") as f:
+        teacher_run = pickle.load(f)
+
+    teacher_run = [{"id": k, "run": v} for k, v in teacher_run.items()]
+
+    for i, x in enumerate(teacher_run):
+        run = sorted(x["run"].items(), key=lambda x: x[1], reverse=True)
+        del x["run"]
+        x["doc_ids"] = [x[0] for x in run]
+        x["scores"] = [x[1] for x in run]
+        teacher_run[i] = x
+
+    teacher_run = sorted(teacher_run, key=lambda x: x["id"])
+
+    write_jsonl(teacher_run, train_teacher_run_path())
 
 
 # def download_val():

@@ -111,7 +111,7 @@ def main(cfg: DictConfig) -> None:
         if split == "dev":
             mrr_score = round(evaluate(qrels, run, "mrr@10") * 100, 2)
             map_score = round(evaluate(qrels, run, "map") * 100, 2)
-            logger.info(f"MRR@10: {mrr_score}\MAP: {map_score}")
+            logger.info(f"MRR@10: {mrr_score}\tMAP: {map_score}")
         else:
             ndcg_score = round(evaluate(qrels, run, "ndcg@10") * 100, 2)
             map_score = round(evaluate(qrels, run, "map-l2") * 100, 2)

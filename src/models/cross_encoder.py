@@ -4,10 +4,7 @@ import torch
 from pytorch_lightning import LightningModule
 from torch import Tensor, column_stack, long, nn, zeros
 from torchmetrics import Accuracy
-from transformers import (
-    BertForSequenceClassification,
-    DistilBertForSequenceClassification,
-)
+from transformers import AutoModelForSequenceClassification
 
 from .utils import configure_optimizers_and_schedulers
 
@@ -23,10 +20,9 @@ class CrossEncoder(LightningModule):
         super().__init__()
 
         # Architecture ---------------------------------------------------------
-        if "distilbert" in encoder:
-            self.encoder = DistilBertForSequenceClassification.from_pretrained(encoder)
-        else:
-            self.encoder = BertForSequenceClassification.from_pretrained(encoder)
+        self.encoder = AutoModelForSequenceClassification.from_pretrained(
+            encoder, num_labels=1
+        )
 
         # Loss function --------------------------------------------------------
         self.criterion = criterion
@@ -72,7 +68,11 @@ class CrossEncoder(LightningModule):
 
         return loss
 
-    def forward(self, batch: list[dict[str, Tensor]], k: int):
+    def forward(self, batch: list[dict[str, Tensor]], k: int) -> tuple[Tensor, Tensor]:
+        """Inference method."""
+        # Move input to device -------------------------------------------------
+        batch = [{k: v.to(self.device) for k, v in d.items()} for d in batch]
+
         indices, scores = [], []
 
         for tokens in batch:
