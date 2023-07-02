@@ -56,6 +56,8 @@ By adopting Configuration-Driven Development in IR experiments, researchers can 
 conda env crete -f env.yml
 ```
 
-## To do
+## Currently working on the following features:
 - Knowledge distillation
+- Validation set performance monitoring
+- Early stopping
 - [Faiss](https://github.com/facebookresearch/faiss) integration
