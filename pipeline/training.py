@@ -1,3 +1,4 @@
+import contextlib
 import os
 
 import hydra
@@ -81,6 +82,13 @@ def main(cfg: DictConfig) -> None:
 
     # Training -----------------------------------------------------------------
     logger.info("Training")
+
+    # Set training strategy
+    if cfg.training.in_batch_negatives:
+        with contextlib.suppress(Exception):
+            # Use in-batch negatives if possible
+            model.training_step = model.training_step_with_in_batch_negatives
+
     trainer.fit(model, train_dataloaders=train_loader)
 
     # Save trained model -------------------------------------------------------

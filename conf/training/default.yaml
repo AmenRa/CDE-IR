@@ -2,3 +2,4 @@
 learning_rate: 6e-5
 metric_to_monitor: NDCG
 monitor_mode: max
+in_batch_negatives: True
