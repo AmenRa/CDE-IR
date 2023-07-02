@@ -13,7 +13,7 @@
 
 # A Configuration-Driven Framework for Reproducible Information Retrieval Experiments
 
-Disclaimer: This is a work in progress. Everything is subject to change.
+⚠️ **This is a work in progress. Everything is subject to change. Suggestions are more than welcome.**
 
 ## What is this repo?
 This repo is a boilerplate for applying Configuration-Driven Experimentation (CDE) to Information Retrieval (IR) research.
