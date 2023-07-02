@@ -11,9 +11,9 @@
   <a href="https://lbesson.mit-license.org/"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
 </p>
 
-# Configuration-Driven Experimentation for Information Retrieval
+# A Configuration-Driven Framework for Reproducible Information Retrieval Experiments
 
-Disclaimer: This is a work in progress.
+Disclaimer: This is a work in progress. Everything is subject to change.
 
 ## What is this repo?
 This repo is a boilerplate for applying Configuration-Driven Experimentation (CDE) to Information Retrieval (IR) research.
@@ -52,7 +52,10 @@ By adopting Configuration-Driven Development in IR experiments, researchers can 
 
 
 ## Requirements
-To use this repo, simply run this command:
 ```bash
 conda env crete -f env.yml
 ```
+
+## To do
+- Knowledge distillation
+- [Faiss](https://github.com/facebookresearch/faiss) integration
